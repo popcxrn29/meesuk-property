@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meesuk Siri Property Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Kanit', sans-serif; }</style>
+</head>
+<body class="bg-slate-50">
+    <div class="max-w-6xl mx-auto p-4">
+        <header class="flex justify-between items-center py-8">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-900">Meesuk Siri Property</h1>
+                <p class="text-gray-500">ระบบจัดการข้อมูลทรัพย์สมัยใหม่</p>
+            </div>
+            <div id="loader" class="animate-pulse text-blue-600 font-medium">กำลังโหลดข้อมูล...</div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 text-center">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <p class="text-gray-400 text-sm mb-1 font-light">จำนวนทรัพย์ทั้งหมด</p>
+                <h2 id="totalCount" class="text-3xl font-bold text-blue-600">0</h2>
+            </div>
+        </div>
+
+        <div id="propertyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+    </div>
+
+    <script>
+        // *** สำคัญมาก: เอาลิงก์ Web App URL ที่คุณก๊อปปี้มา วางแทนที่ในเครื่องหมายคำพูดด้านล่างนี้ ***
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxd-ro_qmS8olYEbbMCTAKEiqFE7egiTYCV74FF361yvpzzxvLIzicklAJ6fPyoUslz/exec";
+
+        async function fetchProperties() {
+            try {
+                const response = await fetch(WEB_APP_URL);
+                const data = await response.json();
+                displayProperties(data);
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('loader').innerText = "โหลดข้อมูลไม่สำเร็จ";
+            }
+        }
+
+        function displayProperties(items) {
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('totalCount').innerText = items.length;
+            const grid = document.getElementById('propertyGrid');
+            
+            grid.innerHTML = items.map(item => `
+                <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-50 group">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${item['สถานะ'] === 'พร้อมขาย' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                                ${item['สถานะ'] || 'พร้อมขาย'}
+                            </span>
+                            <span class="text-blue-700 font-bold text-xl">${item['ราคาขายรวม'] || '0'}.-</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">${item['ชื่อทรัพย์'] || 'ไม่ระบุชื่อ'}</h3>
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm text-gray-500 flex items-center">📍 ${item['อำเภอ']}, ${item['จังหวัด']}</p>
+                            <p class="text-sm text-gray-500 flex items-center">🏠 ${item['ประเภททรัพย์']}</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-t pt-4 text-center">
+                            <div><p class="text-xs text-gray-400">ไร่</p><p class="font-semibold text-gray-700">${item['ไร่'] || '0'}</p></div>
+                            <div><p class="text-xs text-gray-400">งาน</p><p class="font-semibold text-gray-700">${item['งาน'] || '0'}</p></div>
+                            <div><p class="text-xs text-gray-400">ตร.ว.</p><p class="font-semibold text-gray-700">${item['ตร.ว.'] || '0'}</p></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        fetchProperties();
+    </script>
+</body>
+</html>
