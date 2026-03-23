@@ -13,10 +13,10 @@
 </head>
 <body class="bg-gray-100 pb-10">
     <div class="max-w-md mx-auto px-4">
-        <header class="sticky top-0 bg-gray-100 pt-6 pb-4 z-10">
+        <header class="sticky top-0 bg-gray-100 pt-6 pb-4 z-10 text-center">
             <h1 class="text-2xl font-bold text-blue-900">🏠 Meesuk Property</h1>
-            <p class="text-sm text-gray-500">จัดการทรัพย์ผ่านมือถือ</p>
-            <div id="loader" class="mt-2 text-blue-500 font-bold text-xs animate-bounce">กำลังดึงข้อมูลล่าสุด...</div>
+            <p class="text-xs text-gray-500">ระบบจัดการข้อมูลและแคปชั่น</p>
+            <div id="loader" class="mt-2 text-blue-500 font-bold text-xs animate-pulse">กำลังโหลดข้อมูล...</div>
         </header>
 
         <div id="grid" class="space-y-4"></div>
@@ -25,21 +25,21 @@
     <div id="modal" class="hidden fixed inset-0 bg-white z-50 overflow-y-auto">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 class="text-xl font-bold">📝 แก้ไขข้อมูล</h2>
-                <button onclick="closeM()" class="p-2 text-gray-400 text-2xl">&times;</button>
+                <h2 class="text-xl font-bold">📝 แก้ไขข้อมูลทรัพย์</h2>
+                <button onclick="closeM()" class="p-2 text-gray-400 text-3xl">&times;</button>
             </div>
             
             <div id="fields" class="space-y-5"></div>
             
             <div class="mt-8 space-y-3 pb-10">
-                <button id="saveBtn" onclick="save()" class="w-full bg-blue-600 text-white py-4 rounded-2xl text-lg font-bold shadow-lg shadow-blue-200 active:bg-blue-700">บันทึกข้อมูล</button>
+                <button id="saveBtn" onclick="save()" class="w-full bg-blue-600 text-white py-4 rounded-2xl text-lg font-bold shadow-lg active:bg-blue-700">บันทึกข้อมูล</button>
                 <button onclick="closeM()" class="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-bold">ยกเลิก</button>
             </div>
         </div>
     </div>
 
     <script>
-       
+        // *** ใส่ URL ลิงก์เว็บแอปของคุณที่นี่ ***
         const URL = "https://script.google.com/macros/s/AKfycbxd-ro_qmS8olYEbbMCTAKEiqFE7egiTYCV74FF361yvpzzxvLIzicklAJ6fPyoUslz/exec"; 
 
         let data = []; let currentIdx = null;
@@ -55,22 +55,24 @@
 
         function render() {
             const grid = document.getElementById('grid');
-            if (data.length === 0) { grid.innerHTML = "<p class='text-center py-10 text-gray-400'>ไม่พบข้อมูลใน Excel แถวที่ 5 เป็นต้นไป</p>"; return; }
-            
             grid.innerHTML = data.map((item, i) => {
-                const name = item['ชื่อทรัพย์'] || item['ชื่อ'] || 'ไม่มีชื่อทรัพย์';
-                const price = item['ราคาขายรวม'] || item['ราคา'] || '0';
-                const type = item['ประเภททรัพย์'] || item['ประเภท'] || 'ทั่วไป';
+                // ดึงชื่อทรัพย์ (ถ้าใน Excel ชื่อคอลัมน์ไม่ตรง ให้แก้ใน [] ด้านล่างนี้)
+                const name = item['ชื่อทรัพย์'] || item['ชื่อ'] || 'กำลังโหลดชื่อ...';
+                const status = item['สถานะ'] || 'ไม่ระบุสถานะ';
+                const location = `${item['ตำบล'] || ''} ${item['อำเภอ'] || ''}`;
+
                 return `
-                <div class="property-card bg-white p-5 rounded-[2rem] shadow-sm border border-white hover:border-blue-200 transition-all cursor-pointer" onclick="openM(${i})">
+                <div class="property-card bg-white p-5 rounded-[2rem] shadow-sm border border-white active:border-blue-200 transition-all cursor-pointer" onclick="openM(${i})">
                     <div class="flex justify-between items-start mb-3">
-                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">${type}</span>
-                        <span class="text-blue-700 font-bold text-lg">${price}.-</span>
+                        <h3 class="font-bold text-gray-800 text-lg leading-tight flex-1 mr-2">${name}</h3>
+                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">${status}</span>
                     </div>
-                    <h3 class="font-bold text-gray-800 text-md leading-snug mb-2">${name}</h3>
                     <div class="flex items-center text-xs text-gray-400">
-                        <span class="mr-2">📍</span>
-                        <span class="truncate">${item['ตำบล'] || ''} ${item['อำเภอ'] || ''}</span>
+                        <span class="mr-2 text-blue-300">📍</span>
+                        <span class="truncate">${location}</span>
+                    </div>
+                    <div class="mt-3 pt-3 border-t text-[10px] text-blue-500 font-bold uppercase tracking-tighter">
+                        คลิกเพื่อแก้ไขข้อมูล & แคปชั่น
                     </div>
                 </div>`;
             }).join('');
@@ -79,16 +81,25 @@
         function openM(i) {
             currentIdx = data[i].row_index;
             const keys = Object.keys(data[i]).filter(k => k !== 'row_index');
-            document.getElementById('fields').innerHTML = keys.map(k => `
+            
+            document.getElementById('fields').innerHTML = keys.map(k => {
+                // ถ้าคอลัมน์มีคำว่า "แคปชั่น" จะแสดงเป็นช่องใหญ่ (Textarea)
+                if (k.includes('แคปชั่น')) {
+                    return `
+                    <div>
+                        <label class="block text-[11px] font-bold text-blue-600 uppercase mb-1 ml-1">📢 ${k}</label>
+                        <textarea id="in_${k}" rows="8" class="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed">${data[i][k] || ''}</textarea>
+                    </div>`;
+                }
+                return `
                 <div>
                     <label class="block text-[11px] font-bold text-gray-400 uppercase mb-1 ml-1">${k}</label>
-                    ${k.includes('แคปชั่น') ? 
-                        `<textarea id="in_${k}" rows="6" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed">${data[i][k] || ''}</textarea>` :
-                        `<input id="in_${k}" type="text" value="${data[i][k] || ''}" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm">`
-                    }
-                </div>`).join('');
+                    <input id="in_${k}" type="text" value="${data[i][k] || ''}" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>`;
+            }).join('');
+            
             document.getElementById('modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // ป้องกันการเลื่อนหน้าหลัง
+            document.body.style.overflow = 'hidden';
         }
 
         function closeM() { 
@@ -100,11 +111,13 @@
             const btn = document.getElementById('saveBtn');
             btn.innerText = "กำลังบันทึก..."; btn.disabled = true;
             const updates = {};
-            document.querySelectorAll('[id^="in_"]').forEach(el => { updates[el.id.replace('in_', '')] = el.value; });
+            document.querySelectorAll('[id^="in_"]').forEach(el => { 
+                updates[el.id.replace('in_', '')] = el.value; 
+            });
             
             try {
                 await fetch(URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ row_index: currentIdx, updates }) });
-                alert("✅ บันทึกเรียบร้อย!");
+                alert("✅ บันทึกและอัปเดต Excel เรียบร้อย!");
                 location.reload();
             } catch (e) {
                 alert("❌ เกิดข้อผิดพลาด");
