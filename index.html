@@ -1,122 +1,82 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meesuk Property Admin</title>
+    <meta charset="UTF-8"><title>Meesuk Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>body { font-family: 'Kanit', sans-serif; }</style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-    <div class="max-w-6xl mx-auto p-4">
-        <header class="flex justify-between items-center py-8 border-b mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-900">🏠 Meesuk Property</h1>
-                <p class="text-gray-500 mt-1">ระบบจัดการข้อมูลทรัพย์ </p>
-            </div>
-            <div id="loader" class="animate-pulse text-blue-600 font-bold">🔄 กำลังโหลดข้อมูล...</div>
+<body class="bg-slate-50 p-4">
+    <div class="max-w-5xl mx-auto">
+        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm">
+            <h1 class="text-2xl font-bold text-blue-900">🏠 Meesuk Property Admin</h1>
+            <div id="loader" class="text-blue-500 font-bold animate-pulse">กำลังโหลด...</div>
         </header>
-
-        <div id="propertyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm"></div>
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
 
-    <div id="modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[2rem] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 class="text-xl font-bold">📝 รายละเอียดและแก้ไข</h2>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-black">✖</button>
-            </div>
-            <div id="modalFields" class="space-y-4"></div>
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-bold mb-6 border-b pb-4">แก้ไขข้อมูลทรัพย์</h2>
+            <div id="fields" class="space-y-4"></div>
             <div class="mt-8 flex gap-3">
-                <button id="saveBtn" onclick="saveData()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg transition">บันทึกข้อมูล</button>
-                <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-bold hover:bg-gray-200 transition">ยกเลิก</button>
+                <button id="saveBtn" onclick="save()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition">บันทึกข้อมูล</button>
+                <button onclick="closeM()" class="flex-1 bg-gray-100 py-4 rounded-2xl font-bold">ปิด</button>
             </div>
         </div>
     </div>
 
     <script>
-        // *** วาง URL ที่ได้จาก Google Apps Script ตรงนี้ ***
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxd-ro_qmS8olYEbbMCTAKEiqFE7egiTYCV74FF361yvpzzxvLIzicklAJ6fPyoUslz/exec"; 
+        const URL = "ใส่_URL_เว็บแอป_ของคุณที่นี่"; 
+        let data = []; let currentIdx = null;
 
-        let allData = [];
-        let currentRow = null;
-
-        async function loadData() {
-            try {
-                const res = await fetch(WEB_APP_URL);
-                allData = await res.json();
-                render();
-            } catch (e) { document.getElementById('loader').innerText = "❌ เชื่อมต่อ Excel ไม่ได้"; }
+        async function load() {
+            const res = await fetch(URL); data = await res.json();
+            document.getElementById('loader').classList.add('hidden');
+            render();
         }
 
         function render() {
-            document.getElementById('loader').classList.add('hidden');
-            const grid = document.getElementById('propertyGrid');
-            grid.innerHTML = allData.map((item, idx) => `
-                <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer group" onclick="openModal(${idx})">
+            document.getElementById('grid').innerHTML = data.map((item, i) => {
+                // ระบบหาชื่อและราคาแบบยืดหยุ่น (เจอคำว่า 'ชื่อ' หรือ 'ราคา' ตรงไหน เอาตรงนั้นมาโชว์)
+                const name = item['ชื่อทรัพย์'] || item['ชื่อ'] || 'ไม่มีชื่อ';
+                const price = item['ราคาขายรวม'] || item['ราคา'] || '0';
+                return `
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:border-blue-300 transition-all cursor-pointer" onclick="openM(${i})">
                     <div class="flex justify-between mb-4">
-                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${item['ประเภททรัพย์'] || item['ประเภท'] || 'Property'}</span>
-                        <span class="text-blue-700 font-bold text-lg">${item['ราคาขายรวม'] || item['ราคา'] || '0'}.-</span>
+                        <span class="text-blue-600 font-bold text-lg">${price}.-</span>
                     </div>
-                    <h3 class="font-bold text-gray-800 text-lg mb-2">${item['ชื่อทรัพย์'] || 'ไม่มีชื่อ'}</h3>
-                    <p class="text-gray-500 mb-4 line-clamp-1">📍 ${item['อำเภอ'] || ''} ${item['จังหวัด'] || ''}</p>
-                    <div class="pt-4 border-t flex justify-between items-center group-hover:border-blue-100">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${item['สถานะ'] || 'พร้อมขาย'}</span>
-                        <span class="text-blue-500 font-bold group-hover:translate-x-1 transition-transform">แก้ไข →</span>
-                    </div>
-                </div>
-            `).join('');
+                    <h3 class="font-bold text-slate-800 mb-2">${name}</h3>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-tighter">คลิกเพื่อดูรายละเอียด/แก้แคปชั่น</div>
+                </div>`;
+            }).join('');
         }
 
-        function openModal(idx) {
-            const data = allData[idx];
-            currentRow = data.row_index;
-            const fields = document.getElementById('modalFields');
-            
-            // ดึงหัวข้อจาก Excel มาสร้างช่องกรอกอัตโนมัติ
-            const keys = Object.keys(data).filter(k => k !== 'row_index');
-            fields.innerHTML = keys.map(key => `
+        function openM(i) {
+            currentIdx = data[i].row_index;
+            const keys = Object.keys(data[i]).filter(k => k !== 'row_index');
+            document.getElementById('fields').innerHTML = keys.map(k => `
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">${key}</label>
-                    <input type="text" id="input_${key}" value="${data[key] || ''}" 
-                           class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                </div>
-            `).join('');
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">${k}</label>
+                    ${k.includes('แคปชั่น') ? 
+                        `<textarea id="in_${k}" rows="5" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">${data[i][k] || ''}</textarea>` :
+                        `<input id="in_${k}" type="text" value="${data[i][k] || ''}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">`
+                    }
+                </div>`).join('');
             document.getElementById('modal').classList.remove('hidden');
         }
 
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function closeM() { document.getElementById('modal').classList.add('hidden'); }
 
-        async function saveData() {
-            const btn = document.getElementById('saveBtn');
+        async function save() {
+            const btn = document.getElementById('saveBtn'); btn.innerText = "กำลังบันทึก..."; btn.disabled = true;
             const updates = {};
-            const inputs = document.querySelectorAll('[id^="input_"]');
+            document.querySelectorAll('[id^="in_"]').forEach(el => { updates[el.id.replace('in_', '')] = el.value; });
             
-            inputs.forEach(input => {
-                const colName = input.id.replace('input_', '');
-                updates[colName] = input.value;
-            });
-
-            btn.innerText = "กำลังบันทึก...";
-            btn.disabled = true;
-
-            try {
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ row_index: currentRow, updates: updates })
-                });
-                alert("บันทึกข้อมูลเรียบร้อย!");
-                location.reload();
-            } catch (e) {
-                alert("เกิดข้อผิดพลาด");
-                btn.innerText = "บันทึกข้อมูล";
-                btn.disabled = false;
-            }
+            await fetch(URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ row_index: currentIdx, updates }) });
+            alert("บันทึกสำเร็จ!"); location.reload();
         }
-
-        loadData();
+        load();
     </script>
 </body>
 </html>
